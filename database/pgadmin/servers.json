@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "PostgreSQL Apartment DB",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "apartment_db",
+      "Username": "chungcu_user",
+      "SSLMode": "prefer"
+    }
+  }
+}
