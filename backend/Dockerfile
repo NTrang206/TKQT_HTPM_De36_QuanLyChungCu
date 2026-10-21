@@ -39,6 +39,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 
 # Sao chép mã nguồn ứng dụng và phân quyền cho appuser
 COPY --chown=appuser:appgroup . /app
+RUN chmod -R 755 /app
 
 # Chuyển quyền thực thi sang non-root user
 USER appuser

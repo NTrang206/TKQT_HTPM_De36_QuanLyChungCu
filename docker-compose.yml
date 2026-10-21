@@ -1,7 +1,6 @@
 # ==============================================================================
 # HỆ THỐNG QUẢN LÝ CHUNG CƯ DWELL - ĐỀ TÀI 36 (TKQT HTPM K23)
 # Tác giả: Nguyễn Thị Trang (NTrang206)
-# Giai đoạn 2: Tích hợp Hệ thống Giám sát Hiệu năng (Prometheus + Grafana + Exporters)
 # ==============================================================================
 
 name: tkqt-chungcu-de36
@@ -184,6 +183,7 @@ services:
           memory: 256M
     depends_on:
       - prometheus
+      - loki
 
   # ----------------------------------------------------------------------------
   # 7. CADVISOR CONTAINER (Giám sát Tài nguyên Container CPU / RAM)
@@ -227,6 +227,50 @@ services:
       postgres:
         condition: service_healthy
 
+  # ----------------------------------------------------------------------------
+  # 9. LOKI CONTAINER (Lưu trữ và Lập chỉ mục Log tập trung)
+  # ----------------------------------------------------------------------------
+  loki:
+    image: grafana/loki:2.9.4
+    container_name: chungcu_loki
+    restart: unless-stopped
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - monitoring_net
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+
+  # ----------------------------------------------------------------------------
+  # 10. PROMTAIL CONTAINER (Thu thập Log Container chuyển tiếp về Loki)
+  # ----------------------------------------------------------------------------
+  promtail:
+    image: grafana/promtail:2.9.4
+    container_name: chungcu_promtail
+    restart: unless-stopped
+    volumes:
+      - ./promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - monitoring_net
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+    depends_on:
+      - loki
+
+# ==============================================================================
+# PHÂN VÙNG MẠNG DOCKER (NETWORK ISOLATION - HARDENING LỚP 2)
+# ==============================================================================
 networks:
   frontend_net:
     driver: bridge
@@ -235,8 +279,12 @@ networks:
   monitoring_net:
     driver: bridge
 
+# ==============================================================================
+# PHÂN VÙNG LƯU TRỮ BỀN VỮNG (NAMED VOLUMES)
+# ==============================================================================
 volumes:
   postgres_data:
   pgadmin_data:
   prometheus_data:
   grafana_data:
+  loki_data:
